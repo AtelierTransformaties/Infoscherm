@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Infoscherm - Atelier Transformaties</title>
+<link rel="stylesheet" href="tv.css">
+</head>
+<body>
+<div id="podium">
+
+  <header class="kop">
+    <img class="kop-logo" src="img/infoscherm-logo.png" alt="Infoscherm">
+    <div class="kop-rechts">
+      <div id="radioPil" class="radio-pil verborgen">
+        <span class="eq"><i></i><i></i><i></i><i></i></span>
+        <span id="radioPilNaam">Studio Brussel</span>
+      </div>
+      <div class="klok-blok">
+        <div id="klok" class="klok">--:--</div>
+        <div class="datum"><span id="datum">--</span><span class="punt">•</span><span id="week">Week --</span></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="midden">
+    <section class="carrousel" id="carrousel">
+      <div class="laag" id="laag0"><div class="waas"></div><img class="foto" alt=""></div>
+      <div class="laag" id="laag1"><div class="waas"></div><img class="foto" alt=""></div>
+      <div id="leeg" class="leeg verborgen">
+        <div class="leeg-icoon">▣</div>
+        <h2>Nog geen foto's</h2>
+        <p>Zet foto's in de map Infoscherm in Teams of voeg ze toe via Beheer op de pc.</p>
+      </div>
+      <div id="teller" class="teller">0 / 0</div>
+      <div class="voortgang"><div id="voortgang"></div></div>
+    </section>
+
+    <aside class="zijkant">
+      <section class="kaart levering">
+        <div class="label">DEZE WEEK <span class="punt">•</span> <span id="leveringWeek">WEEK --</span></div>
+        <h2>Levering kar lossen</h2>
+        <div id="leveringNaam" class="levering-naam">Johan</div>
+        <div class="levering-noot">Verantwoordelijke medewerker</div>
+      </section>
+
+      <section class="kaart weer">
+        <div class="kaart-kop"><h2>Weer Kortenberg</h2><span id="weerStatus" class="status-punt"></span></div>
+        <div class="weer-nu">
+          <span id="weerIcoon" class="weer-icoon"></span>
+          <span id="temperatuur" class="temperatuur">--°</span>
+          <div class="weer-info">
+            <div id="weerTekst" class="weer-tekst">Weerbericht laden...</div>
+            <div class="weer-details">Wind <b id="wind">-- km/u</b></div>
+            <div class="weer-details">Vandaag <b id="bereik">--° / --°</b></div>
+          </div>
+        </div>
+        <div id="voorspelling" class="voorspelling"></div>
+      </section>
+    </aside>
+  </main>
+
+  <footer class="voet">
+    <section class="contacten">
+      <div class="label">VERANTWOORDELIJKEN</div>
+      <div id="contactLijst" class="contact-lijst"></div>
+    </section>
+    <section class="intranet">
+      <div class="qr"><img src="img/intranet-qr.svg" alt="QR-code naar het intranet"></div>
+      <div>
+        <h2>Intranet</h2>
+        <p>Scan de QR-code voor rechtstreekse toegang</p>
+      </div>
+    </section>
+  </footer>
+
+  <div id="geluidVraag" class="geluid-vraag verborgen">
+    <div class="geluid-kader">
+      <div class="geluid-icoon">🔊</div>
+      <div>
+        <b>Klik één keer op het scherm</b>
+        <span>De browser vraagt één klik voor hij geluid mag afspelen.</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<audio id="radio" preload="none"></audio>
+<script src="instellingen.js"></script>
+<script src="gedeeld.js"></script>
+<script src="tv.js"></script>
+</body>
+</html>
