@@ -1,4 +1,7 @@
+// Koppeling met Supabase - zie de handleiding, stap 5.
+// Laat je beide velden leeg, dan draait het infoscherm in demostand:
+// TV en beheer werken dan alleen samen binnen dezelfde browser.
 var INFOSCHERM_CONFIG = {
-  supabaseUrl: '',      // https://bbqwlbkgjmmssveiqlvb.supabase.co
-  supabaseSleutel: ''   // sb_publishable_0bhIErvPZojmati5gK0nEA_13Ui1iyE
+  supabaseUrl: https://bbqwlbkgjmmssveiqlvb.supabase.co
+  supabaseSleutel: sb_publishable_0bhIErvPZojmati5gK0nEA_13Ui1iyE
 };
