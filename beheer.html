@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Infoscherm - Beheer</title>
+<link rel="stylesheet" href="beheer.css">
+</head>
+<body>
+<header class="kopbalk">
+  <div class="merk">
+    <img class="logo" src="img/dieteren-logo-wit.png" alt="D'Ieteren">
+    <span class="scheiding"></span>
+    <div>
+      <div class="titel">INFO<span>SCHERM</span></div>
+      <div class="ondertitel">Beheer · Atelier Transformaties Kortenberg</div>
+    </div>
+  </div>
+  <div class="kop-rechts">
+    <span id="stand" class="stand">Demo</span>
+    <div id="tvPil" class="tv-pil"><span class="bol"></span><span id="tvPilTekst">TV zoeken...</span></div>
+    <a class="knop" href="tv.html" target="_blank" rel="noopener">TV-scherm openen ↗</a>
+    <button id="afmelden" class="knop verborgen" type="button">Afmelden</button>
+  </div>
+</header>
+
+<div id="demoUitleg" class="demo-uitleg verborgen">
+  <b>Demostand.</b> TV en beheer werken nu samen binnen deze browser. Vul <code>instellingen.js</code> in
+  om de pc en de TV online te koppelen (zie handleiding, stap 2 tot 5).
+</div>
+
+<div id="aanmelden" class="aanmelden verborgen">
+  <form id="aanmeldForm" class="aanmeld-kaart">
+    <img class="logo" src="img/dieteren-logo-wit.png" alt="D'Ieteren">
+    <div class="titel">INFO<span>SCHERM</span> · BEHEER</div>
+    <label>E-mail<input id="aanmeldMail" type="email" autocomplete="username" required></label>
+    <label>Wachtwoord<input id="aanmeldWachtwoord" type="password" autocomplete="current-password" required></label>
+    <div id="aanmeldFout" class="aanmeld-fout"></div>
+    <button id="aanmeldKnop" class="knop primair groot" type="submit">Aanmelden</button>
+  </form>
+</div>
+
+<main class="raster">
+
+  <section class="kaart radio">
+    <div class="kaart-kop">
+      <h2>Radio</h2>
+      <div id="radioStatus" class="status"><span class="bol"></span><span id="radioStatusTekst">-</span></div>
+    </div>
+    <div id="zenders" class="zenders"></div>
+    <div class="radio-bediening">
+      <button id="radioKnop" class="knop primair groot" type="button">▶ Afspelen op TV</button>
+      <label class="volume">
+        <span>🔈</span>
+        <input id="volume" type="range" min="0" max="100" step="1">
+        <b id="volumeTekst">70%</b>
+      </label>
+    </div>
+    <p class="noot">Het geluid komt uit de TV. Deze pc speelt zelf niets af.</p>
+  </section>
+
+  <section class="kaart levering">
+    <div class="kaart-kop">
+      <h2>Levering kar lossen</h2>
+      <span id="leveringWeek" class="week">Week --</span>
+    </div>
+    <p class="noot">Verantwoordelijke medewerker deze week:</p>
+    <div id="medewerkers" class="chips"></div>
+    <div class="url-rij">
+      <input id="nieuweNaam" type="text" maxlength="24" placeholder="Naam toevoegen">
+      <button id="naamToevoegen" class="knop" type="button">Toevoegen</button>
+    </div>
+    <p class="noot">Klik op een naam om hem op de TV te zetten. Met × haal je iemand uit de lijst.</p>
+  </section>
+
+  <section class="kaart fotos breed">
+    <div class="kaart-kop">
+      <h2>Fotocarrousel</h2>
+      <span id="fotoAantal" class="week">0 foto's</span>
+    </div>
+
+    <div class="teams">
+      <div class="teams-icoon">T</div>
+      <div class="teams-tekst">
+        <b>Map Infoscherm in Teams</b>
+        <span id="mapStatus">Nog geen map gekoppeld.</span>
+      </div>
+      <div class="teams-knoppen">
+        <button id="mapKoppel" class="knop primair" type="button">Map koppelen</button>
+        <button id="mapSync" class="knop verborgen" type="button">Nu bijwerken</button>
+        <a class="knop" id="teamsLink" target="_blank" rel="noopener">Open in Teams ↗</a>
+      </div>
+      <input id="mapInvoer" type="file" webkitdirectory multiple class="verborgen">
+    </div>
+    <p class="noot">Eén keer instellen: open de map in Teams, kies <b>Synchroniseren</b> zodat ze in je Verkenner staat, en koppel ze hier.
+      Wie een foto in die map zet, ziet hem op de TV. Zolang deze pagina open staat, kijkt ze elke 5 minuten naar nieuwe foto's.</p>
+
+    <label id="sleepVak" class="sleep-vak">
+      <input id="fotoInvoer" type="file" accept="image/*" multiple>
+      <b>Sleep foto's hierheen</b> of klik om te kiezen
+      <span>Elk formaat past: staand, liggend of vierkant.</span>
+    </label>
+
+    <div class="url-rij">
+      <input id="fotoUrl" type="url" placeholder="of plak een link naar een afbeelding (https://...)">
+      <button id="urlToevoegen" class="knop" type="button">Toevoegen</button>
+    </div>
+
+    <div id="fotoLijst" class="foto-lijst"></div>
+
+    <div class="rij-eind">
+      <button id="fotosWissen" class="knop gevaar" type="button">Alle foto's verwijderen</button>
+    </div>
+  </section>
+
+  <section class="kaart weergave">
+    <div class="kaart-kop"><h2>Weergave</h2></div>
+    <p class="noot">Wisseltijd van de fotocarrousel:</p>
+    <div id="wisseltijden" class="chips"></div>
+    <div class="rij-eind">
+      <button id="herstel" class="knop gevaar" type="button">Standaardinstellingen herstellen</button>
+    </div>
+  </section>
+
+  <section class="kaart contacten">
+    <div class="kaart-kop"><h2>Verantwoordelijken</h2></div>
+    <div id="contacten" class="contact-velden"></div>
+  </section>
+
+</main>
+
+<div id="melding" class="melding"></div>
+
+<script src="instellingen.js"></script>
+<script src="gedeeld.js"></script>
+<script src="beheer.js"></script>
+</body>
+</html>
