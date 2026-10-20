@@ -2,6 +2,6 @@
 // Laat je beide velden leeg, dan draait het infoscherm in demostand:
 // TV en beheer werken dan alleen samen binnen dezelfde browser.
 var INFOSCHERM_CONFIG = {
-  supabaseUrl: '',      // bv. 'https://abcdefghijklmnop.supabase.co'
-  supabaseSleutel: ''   // de Publishable key, begint met 'sb_publishable_'
+  supabaseUrl: '',      // https://bfsuhhnlmfewqxxrdafv.supabase.co
+  supabaseSleutel: ''   // sb_publishable_Z0c_rgnix3quKVuKRoPRAg_7s6AlEij
 };
