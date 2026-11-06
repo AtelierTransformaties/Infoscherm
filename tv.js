@@ -280,7 +280,10 @@
 
   // ---------- radio: aan/uit via beheer, geluid uit de TV ----------
   var audio = $('radio');
-  var radio = { toestand: 'gestopt', zender: null, herTimer: null, laatsteTijd: -1, stil: 0 };
+  var radio = {
+    toestand: 'gestopt', zender: null, herTimer: null, laatsteTijd: -1, stil: 0,
+    tijdLoopt: 0, tijdTelt: false, wachtSinds: 0, herstarts: 0, reden: ''
+  };
 
   function zetRadio(t) {
     radio.toestand = t;
@@ -305,9 +308,11 @@
     }
   }
 
-  function radioOpnieuw() {
+  function radioOpnieuw(reden) {
     var z = Infoscherm.zender(radio.zender);
     if (!z) return;
+    radio.herstarts++;
+    radio.reden = reden || '';
     audio.src = z.url;
     radioSpeel();
   }
@@ -315,7 +320,7 @@
   function radioFout() {
     zetRadio('fout');
     clearTimeout(radio.herTimer);
-    radio.herTimer = setTimeout(function () { if (radio.zender) radioOpnieuw(); }, 8000);
+    radio.herTimer = setTimeout(function () { if (radio.zender) radioOpnieuw('fout'); }, 8000);
   }
 
   function radioStop() {
@@ -344,15 +349,30 @@
     }
   }
 
-  audio.addEventListener('playing', function () { if (radio.zender) zetRadio('speelt'); });
+  audio.addEventListener('playing', function () { radio.wachtSinds = 0; if (radio.zender) zetRadio('speelt'); });
+  audio.addEventListener('waiting', function () { if (!radio.wachtSinds) radio.wachtSinds = Date.now(); });
   audio.addEventListener('error', function () { if (radio.zender && audio.getAttribute('src')) radioFout(); });
 
   // Een livestream die stilvalt (netwerk weg en terug) opnieuw starten.
+  // Sommige TV-browsers laten currentTime bij een livestream stilstaan terwijl hij gewoon
+  // speelt. De speeltijd telt daarom pas mee als die drie keer na elkaar opliep; anders
+  // gaat het enkel op wat de browser zelf meldt: gepauzeerd, gedaan of 15 s wachten op data.
   setInterval(function () {
     if (radio.toestand !== 'speelt') { radio.stil = 0; radio.laatsteTijd = -1; return; }
-    if (audio.currentTime === radio.laatsteTijd) radio.stil++; else radio.stil = 0;
-    radio.laatsteTijd = audio.currentTime;
-    if (radio.stil >= 2) { radio.stil = 0; radioOpnieuw(); }
+    var t = audio.currentTime;
+    if (radio.laatsteTijd >= 0 && t > radio.laatsteTijd) {
+      radio.tijdLoopt++;
+      if (radio.tijdLoopt >= 3) radio.tijdTelt = true;
+    } else {
+      radio.tijdLoopt = 0;
+    }
+    var reden = '';
+    if (audio.paused || audio.ended) reden = 'gestopt';
+    else if (radio.wachtSinds && Date.now() - radio.wachtSinds > 15000) reden = 'wacht op data';
+    else if (radio.tijdTelt && t === radio.laatsteTijd) reden = 'speeltijd staat stil';
+    radio.laatsteTijd = t;
+    radio.stil = reden ? radio.stil + 1 : 0;
+    if (radio.stil >= 2) { radio.stil = 0; radio.wachtSinds = 0; radioOpnieuw(reden); }
   }, 10000);
 
   // De browser laat pas geluid toe na één klik of toets op dit scherm.
@@ -373,7 +393,13 @@
       soort: 'tv-status', id: mij.id, sinds: mij.sinds,
       radio: radio.toestand, zender: radio.zender,
       foto: car.lijst.length ? car.nr + 1 : 0, fotos: car.lijst.length, fotoId: car.huidigId,
-      tijd: Date.now()
+      tijd: Date.now(),
+      // meetgegevens om de radio van op afstand te kunnen nakijken
+      diag: {
+        ct: Math.round(audio.currentTime || 0), rs: audio.readyState, ns: audio.networkState,
+        telt: radio.tijdTelt, her: radio.herstarts, reden: radio.reden,
+        ua: navigator.userAgent
+      }
     });
   }
   setInterval(function () {
