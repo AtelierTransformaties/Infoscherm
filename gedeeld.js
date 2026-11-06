@@ -4,6 +4,9 @@
 //  - online: instellingen.js ingevuld. Alles loopt via Supabase, TV en pc mogen
 //            elk een ander toestel zijn.
 // Bewust zonder ?. en ?? zodat ook oudere TV-browsers het lezen.
+// Zo'n oudere browser kan de Supabase-bibliotheek zelf niet lezen. Die krijgt de lichte
+// weg: instellingen ophalen met fetch en berichten via een eigen websocket. Dat volstaat
+// voor de TV; het beheer heeft een recente browser nodig.
 'use strict';
 
 var Infoscherm = (function () {
@@ -11,9 +14,14 @@ var Infoscherm = (function () {
   var LAATST = 'infoscherm.laatst-online.v1';
   var SUPABASE_JS = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js';
   var EMMER = 'fotos';
+  var KANAAL = 'infoscherm';
 
   var CONFIG = window.INFOSCHERM_CONFIG || {};
   var ONLINE = !!(CONFIG.supabaseUrl && CONFIG.supabaseSleutel);
+  function kanNieuweCode() {
+    try { new Function('var a = {}; return a?.b ?? 1;'); return true; } catch (e) { return false; }
+  }
+  var LICHT = ONLINE && (CONFIG.licht === true || !kanNieuweCode());
 
   var ZENDERS = [
     { id: 'stubru', naam: 'Studio Brussel', kort: 'StuBru', url: 'https://icecast.vrtcdn.be/stubru-high.mp3' },
@@ -116,6 +124,7 @@ var Infoscherm = (function () {
   }
 
   function haalOnline() {
+    if (LICHT) return lichtHaal();
     return sb.from('infoscherm').select('data').eq('id', 'hoofd').maybeSingle().then(function (r) {
       if (r.error) throw r.error;
       return r.data ? r.data.data : null;
@@ -123,7 +132,7 @@ var Infoscherm = (function () {
   }
 
   function vernieuw() {
-    if (!ONLINE || !sb) return Promise.resolve(cache);
+    if (!ONLINE || (!sb && !LICHT)) return Promise.resolve(cache);
     return haalOnline().then(function (data) {
       if (data) {
         cache = samenvoegen(data);
@@ -141,9 +150,15 @@ var Infoscherm = (function () {
     if (gestart) return gestart;
     if (!ONLINE) { gestart = Promise.resolve(cache); return gestart; }
 
-    gestart = laadScript(SUPABASE_JS).then(function () {
+    gestart = (LICHT ? Promise.resolve() : laadScript(SUPABASE_JS)).then(function () {
+      // Geladen maar niet leesbaar (te oude browser): dan ook de lichte weg.
+      if (!LICHT && !(window.supabase && window.supabase.createClient)) LICHT = true;
+      if (LICHT) {
+        lichtVerbind();
+        return haalOnline();
+      }
       sb = window.supabase.createClient(CONFIG.supabaseUrl, CONFIG.supabaseSleutel);
-      kanaal = sb.channel('infoscherm', { config: { broadcast: { self: false } } });
+      kanaal = sb.channel(KANAAL, { config: { broadcast: { self: false } } });
       kanaal.on('broadcast', { event: 'bericht' }, function (m) { verdeel(m.payload || {}); });
       var eerste = true;
       kanaal.subscribe(function (toestand) {
@@ -166,6 +181,102 @@ var Infoscherm = (function () {
     });
     return gestart;
   }
+
+  // --- lichte weg voor oudere TV-browsers: zonder de Supabase-bibliotheek ---
+  var licht = { ws: null, ref: 0, verbonden: false, ooitVerbonden: false, hartslag: null, wachtOp: null, opnieuw: null, pauze: 5000 };
+
+  function lichtBasis() { return String(CONFIG.supabaseUrl).replace(/\/+$/, ''); }
+
+  function lichtHaal() {
+    return fetch(lichtBasis() + '/rest/v1/infoscherm?id=eq.hoofd&select=data', {
+      headers: { apikey: CONFIG.supabaseSleutel, Authorization: 'Bearer ' + CONFIG.supabaseSleutel }
+    }).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).then(function (rijen) {
+      return (rijen && rijen.length) ? rijen[0].data : null;
+    });
+  }
+
+  function lichtStuur(event, payload, topic) {
+    if (!licht.ws || licht.ws.readyState !== 1) return null;
+    licht.ref += 1;
+    var ref = String(licht.ref);
+    licht.ws.send(JSON.stringify({ topic: topic || 'realtime:' + KANAAL, event: event, payload: payload, ref: ref }));
+    return ref;
+  }
+
+  function lichtZend(bericht) {
+    if (licht.verbonden) lichtStuur('broadcast', { type: 'broadcast', event: 'bericht', payload: bericht });
+  }
+
+  function lichtVerbind() {
+    if (licht.ws || licht.opnieuw) return;
+    var adres = lichtBasis().replace(/^http/, 'ws') + '/realtime/v1/websocket?apikey=' +
+      encodeURIComponent(CONFIG.supabaseSleutel) + '&vsn=1.0.0';
+    var ws;
+    try { ws = new WebSocket(adres); } catch (e) { lichtLater(); return; }
+    licht.ws = ws;
+    var joinRef = null;
+
+    ws.onopen = function () {
+      joinRef = lichtStuur('phx_join', {
+        config: { broadcast: { ack: false, self: false }, presence: { key: '' }, postgres_changes: [], private: false }
+      });
+      // Hartslag: blijft een antwoord uit, dan is de verbinding dood en begint ze opnieuw.
+      licht.hartslag = setInterval(function () {
+        if (licht.wachtOp) { ws.close(); return; }
+        licht.wachtOp = lichtStuur('heartbeat', {}, 'phoenix');
+      }, 25000);
+    };
+
+    ws.onmessage = function (e) {
+      var m;
+      try { m = JSON.parse(e.data); } catch (x) { return; }
+      if (m.event === 'phx_reply' && m.ref === licht.wachtOp) { licht.wachtOp = null; return; }
+      if (m.event === 'phx_reply' && m.ref === joinRef) {
+        if (m.payload && m.payload.status === 'ok') {
+          var weer = licht.ooitVerbonden;
+          licht.verbonden = true;
+          licht.ooitVerbonden = true;
+          licht.pauze = 5000;
+          // Na een onderbreking opnieuw ophalen: misschien is er intussen iets gewijzigd.
+          if (weer) vernieuw();
+          luisteraars.forEach(function (cb) { cb({ soort: 'verbonden' }); });
+        } else {
+          meldFout('Berichtenkanaal weigert de verbinding', new Error(JSON.stringify(m.payload)));
+          ws.close();
+        }
+        return;
+      }
+      if (m.event === 'broadcast' && m.payload && m.payload.event === 'bericht') {
+        verdeel(m.payload.payload || {});
+      } else if (m.event === 'phx_error' || m.event === 'phx_close') {
+        ws.close();
+      }
+    };
+
+    ws.onclose = function () {
+      clearInterval(licht.hartslag);
+      licht.ws = null;
+      licht.verbonden = false;
+      licht.wachtOp = null;
+      lichtLater();
+    };
+    ws.onerror = function () { /* onclose volgt en verbindt opnieuw */ };
+  }
+
+  function lichtLater() {
+    if (licht.opnieuw) return;
+    licht.opnieuw = setTimeout(function () {
+      licht.opnieuw = null;
+      lichtVerbind();
+    }, licht.pauze);
+    licht.pauze = Math.min(licht.pauze * 2, 60000);
+  }
+
+  // Zonder berichtenkanaal komen wijzigingen niet vanzelf binnen: dan elke 30 seconden kijken.
+  if (ONLINE) setInterval(function () { if (LICHT && gestart && !licht.verbonden) vernieuw(); }, 30000);
 
   // Schrijfopdrachten na elkaar, zodat een oudere nooit een nieuwere overschrijft.
   var schrijfRij = Promise.resolve();
@@ -208,7 +319,8 @@ var Infoscherm = (function () {
 
   function zend(bericht) {
     if (ONLINE) {
-      if (kanaal) kanaal.send({ type: 'broadcast', event: 'bericht', payload: bericht });
+      if (LICHT) lichtZend(bericht);
+      else if (kanaal) kanaal.send({ type: 'broadcast', event: 'bericht', payload: bericht });
     } else if (bc) {
       bc.postMessage(bericht);
     }
